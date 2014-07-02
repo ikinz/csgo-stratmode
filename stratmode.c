@@ -23,6 +23,18 @@ new Handle:cvar_bot_quota,
 	Handle:cvar_mp_do_warmup_period,
 	Handle:cvar_mp_respawn_on_death_ct,
 	Handle:cvar_mp_respawn_on_death_t;
+	
+new String:hitgroup[][] = {
+	"Generic", 
+	"Head", 
+	"Chest", 
+	"Stomach", 
+	"Left Arm", 
+	"Right Arm", 
+	"Left Leg", 
+	"Right Leg", 
+	"Gear"
+};
 
 public Plugin:myinfo = {
 	name = "Strat mode",
@@ -35,7 +47,6 @@ public Plugin:myinfo = {
 public OnPluginStart() {
 	initCvars();
 	initCommands();
-	initMenu();
 	initServerSettings();
 	
 	HookEvent("player_hurt", Event_damage, EventHookMode_Pre);
@@ -67,11 +78,7 @@ public OnClientPutInServer(client) {
 /***************************************************
  * INITIALIZERS
  **************************************************/
-
-initMenu() {
-	
-}
-
+ 
 initCvars() {
 	cvar_bot_quota = FindConVar("bot_quota");
 	cvar_bot_stop = FindConVar("bot_stop");
@@ -87,6 +94,8 @@ initCvars() {
 }
 
 initCommands() {
+	// Open menu
+	RegConsoleCmd("menu", Command_Menu);
 	// Save Checkpoint
 	RegConsoleCmd("checkpoint", Command_Save);
 	RegConsoleCmd("save", Command_Save);
@@ -116,21 +125,49 @@ initServerSettings() {
  * CONSOLE COMMAND LISTENERS
  **************************************************/
 
+public MenuHandler(Handle:menu, MenuAction:action, param1, param2) {
+	if (action == MenuAction_Select) {
+		new selected = param2 + 1;
+		switch(selected) {
+			case 1: {
+				Command_Save(param1, 0);
+			}
+			case 2: {
+				Command_Teleport(param1, 0);
+			}
+			case 3: {
+				Command_BotPlace(param1, 0);
+			}
+		}
+		
+		DisplayMenuAtItem(menu, param1, GetMenuSelectionPosition(), 0);
+	} else if (action == MenuAction_Cancel) {
+	}
+}
+ 
+public Action:Command_Menu(client, args) {
+	new Handle:menu = CreateMenu(MenuHandler);
+	SetMenuTitle(menu, "Strat menu");
+	AddMenuItem(menu, "save", "Save location");
+	AddMenuItem(menu, "tele", "Teleport");
+	AddMenuItem(menu, "place", "Place bot");
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, 0);
+	
+	return Plugin_Handled;
+}
+ 
 /*
  * Prints out the damage dealt to the assigned bot
  */
 public Action:Event_damage(Handle:event, const String:Name[], bool:dontBroadcast) {
-	new attacker = GetEventInt(event, "attacker");
-	new clientHurt = GetEventInt(event, "userid");
+	new attacker = GetEventInt(event, "attacker") - 1;
+	new clientHurt = GetEventInt(event, "userid") - 1;
 	new dmg = GetEventInt(event, "dmg_health");
-	
-	PrintToServer("attacker: %i", attacker);
-	PrintToServer("clientHurt: %i", clientHurt);
-	PrintToServer("dmg: %i", dmg);
-	PrintToServer("Bot for player: %i", bot[attacker]);
+	new h_group = GetEventInt(event, "hitgroup");
 	
 	if (bot[attacker] == clientHurt) {
-		PrintToChat(attacker, "\x01 \x03You dealt \x07%i \x03damage", dmg);
+		PrintToChat(attacker, "\x01 \x04You dealt \x07%i \x04damage to the \x07%s", dmg, hitgroup[h_group]);
 	}
 	return Plugin_Handled;
 }
