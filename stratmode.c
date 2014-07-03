@@ -50,6 +50,7 @@ public OnPluginStart() {
 	initServerSettings();
 	
 	HookEvent("player_hurt", Event_damage, EventHookMode_Pre);
+	HookEvent("player_spawn", Event_spawn, EventHookMode_Pre);
 }
 
 public OnMapStart() {
@@ -170,6 +171,17 @@ public Action:Event_damage(Handle:event, const String:Name[], bool:dontBroadcast
 		PrintToChat(attacker, "\x01 \x04You dealt \x07%i \x04damage to the \x07%s", dmg, hitgroup[h_group]);
 	}
 	return Plugin_Handled;
+}
+
+public Action:Event_spawn(Handle:event, const String:Name[], bool:dontBroadcast) {
+	new client = GetEventInt(event, "userid") - 1;
+	
+	PrintToServer("%i", client);
+	
+	if (IsFakeClient(client)) {
+		PrintToServer("true");
+		TeleportEntity(client + 1, bot_location[client + 1][0], bot_location[client + 1][1], NULL_VECTOR);
+	}
 }
  
 public Action:Command_Save(client, args) {
